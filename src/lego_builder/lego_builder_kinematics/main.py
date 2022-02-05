@@ -1,29 +1,21 @@
 #!/usr/bin/python3
+import time
+
 import math
 import copy
 import actionlib
-import gazebo_msgs.srv
 import control_msgs.msg
-import trajectory_msgs.msg
+from controller import ArmController
 from gazebo_msgs.msg import ModelStates
 import rospy
 from pyquaternion import Quaternion as PyQuaternion
 import numpy as np
-from joint_controller import get_Joints
 from gazebo_ros_link_attacher.srv import SetStatic, SetStaticRequest, SetStaticResponse
 from gazebo_ros_link_attacher.srv import Attach, AttachRequest, AttachResponse
 
 lego_info = np.zeros( (11,5) )
-#in [x,0], x defines the piece of lego in alphabetic order
-#in [1,x], with x=0 it defines X target position of lego numb 1
-#          with x=1 it defines Y target position of lego numb 1
-#          with x=2 it defines current Z target position of lego numb 1
-#          with x=3 it defines height of lego numb 1
 
-#HARDCODED POSITIONS FOR LEGOS
-# lego_X1-Y1-Z2
-
-MODELS = ["lego_X1-Y2-Z1", "lego_X2-Y2-Z2", "lego_X1-Y3-Z2", "lego_X1-Y2-Z2", "lego_X1-Y2-Z2-CHAMFER", "lego_X1-Y4-Z2", "lego_X1-Y1-Z2", "lego_X1-Y2-Z2-TWINFILLET", "lego_X1-Y3-Z2-FILLET", "lego_X1-Y4-Z1", "lego_X2-Y2-Z2-FILLET"]
+MODELS = ["X1-Y2-Z1", "X2-Y2-Z2", "X1-Y3-Z2", "X1-Y2-Z2", "X1-Y2-Z2-CHAMFER", "X1-Y4-Z2", "X1-Y1-Z2", "X1-Y2-Z2-TWINFILLET", "X1-Y3-Z2-FILLET", "X1-Y4-Z1", "X2-Y2-Z2-FILLET"]
 
 # lego_X1-Y2-Z1
 lego_info[0,0]=0.072761
@@ -95,16 +87,14 @@ lego_info[10,4]=0.1
 # Resting orientation of the end effector
 DEFAULT_QUAT = PyQuaternion(axis=(0, 1, 0), angle=math.pi)
 # Resting position of the end effector
-DEFAULT_POS  = (-0.3, 0, 1)
-
-DEFAULT_JOINT_TRAJECTORY = trajectory_msgs.msg.JointTrajectory()
-DEFAULT_JOINT_TRAJECTORY.joint_names = ["shoulder_pan_joint", "shoulder_lift_joint","elbow_joint", "wrist_1_joint", "wrist_2_joint","wrist_3_joint"]
+DEFAULT_POS = (-0.1, -0.2, 1.2)
 
 DEFAULT_PATH_TOLERANCE = control_msgs.msg.JointTolerance()
 DEFAULT_PATH_TOLERANCE.name = "path_tolerance"
 DEFAULT_PATH_TOLERANCE.velocity = 10
 
 
+"""
 def send_joints(x, y, z, quat, blocking=True, duration=1.0):
     th_res = get_Joints(x, y, z, quat.rotation_matrix)
 
@@ -112,7 +102,6 @@ def send_joints(x, y, z, quat, blocking=True, duration=1.0):
     goal.trajectory = copy.deepcopy(DEFAULT_JOINT_TRAJECTORY)
     goal.trajectory.header.stamp = rospy.Time.now()
 
-    print(DEFAULT_PATH_TOLERANCE)
     #goal.goal_tolerance = [DEFAULT_PATH_TOLERANCE]
     goal.goal_time_tolerance = rospy.Duration(3)
 
@@ -127,13 +116,13 @@ def send_joints(x, y, z, quat, blocking=True, duration=1.0):
         action_trajectory.wait_for_result()
 
     return action_trajectory.get_result()
+"""
 
 
 def get_gazebo_model_name(vision_model_name, vision_model_pose):
     """
         Get the name of the model inside gazebo. It is needed for link attacher plugin.
     """
-    models = ModelStates()
     models = rospy.wait_for_message("/gazebo/model_states", ModelStates, timeout=None)
     epsilon = 0.05
     for model_name, model_pose in zip(models.name, models.pose):
@@ -151,50 +140,18 @@ def get_legos_pos(vision=False):
     if vision:
         legos = rospy.wait_for_message("/estimated_model_states", ModelStates, timeout=None)
     else:
-        legos = rospy.wait_for_message("/gazebo/model_states", ModelStates, timeout=None)
+        models = rospy.wait_for_message("/gazebo/model_states", ModelStates, timeout=None)
+        legos = ModelStates()
+
+        for name, pose in zip(models.name, models.pose):
+            if "lego_" not in name:
+                continue
+            name.replace("lego_", "")
+            name = name.rsplit("_", maxsplit=1)[0]
+
+            legos.name.append(name)
+            legos.pose.append(pose)
     return [(lego_name, lego_pose) for lego_name, lego_pose in zip(legos.name, legos.pose)]
-
-
-def move_to(start_pos, start_quat, target_pos, target_quat, z_raise=0.0):
-    """
-    Move the end effector to target_pos with target_quat as orientation
-
-    :param start_pos:
-    :param start_quat:
-    :param target_pos:
-    :param target_quat:
-    :param z_raise:
-    :return:
-    """
-    def smooth(percent_value, period=math.pi):
-        return (1-math.cos(percent_value*period))/2
-
-
-    steps = 15
-    step = 1 / steps
-
-    x, y, z = start_pos
-    dx, dy, dz = target_pos[0]-x, target_pos[1]-y, target_pos[2]-z
-
-    for i in np.arange(0, 1+step, step):
-        i_2 = smooth(i, 2*math.pi)  # from 0 to 1 to 0
-        i = smooth(i)  # from 0 to 1
-
-        grip = PyQuaternion.slerp(start_quat, target_quat, i)
-
-        send_joints(
-            x+i*dx,
-            y+i*dy,
-            z+i*dz+i_2*z_raise,
-            grip,
-            blocking=False, duration=0.5)
-        rospy.sleep(0.1)
-    send_joints(
-        x + i * dx,
-        y + i * dy,
-        z + i * dz,
-        grip,
-        blocking=True, duration=0.5)
 
 
 def straighten(model_pose, model_name, lego_type):
@@ -244,57 +201,48 @@ def straighten(model_pose, model_name, lego_type):
         Grip the model
     """
     # Get above the object
-    send_joints(x, y, z+0.2, approach_quat)
+    controller.move_to(x, y, target_quat=approach_quat)
 
     # Lower down and grip
-    send_joints(x, y, z, approach_quat, duration=2)
+    controller.move_to(x, y, z, approach_quat)
     close_gripper(model_name)
 
     """
         Straighten model if needed
     """
     if facing_direction != "up":
-        move_to((x, y, z), approach_quat, (x, y, z), target_quat, z_raise=0.2)
-        rospy.sleep(0.7)
+        controller.move_to(x, y, z+0.02, target_quat, z_raise=0.2)
         open_gripper(model_name)
 
         # Re grip the model
-        move_to((x, y, z), target_quat, (x, y, z), DEFAULT_QUAT, z_raise=0.2)
-        rospy.sleep(0.7)
+        controller.move_to(x, y, z, DEFAULT_QUAT, z_raise=0.2)
         close_gripper(model_name)
 
 
 def close_gripper(model_name):
-    rospy.loginfo("Attaching object and gripper")
+    set_gripper(0.1)
 
-    """
-        Create dynamic joint
-    """
-    req = AttachRequest()
-    req.model_name_1 = model_name
-    req.link_name_1 = "link"
-    req.model_name_2 = "robot"
-    req.link_name_2 = "wrist_3_link"
-    attach_srv.call(req)
-
-    set_gripper(0.8)
+    # Create dynamic joint
+    if model_name is not None:
+        req = AttachRequest()
+        req.model_name_1 = model_name
+        req.link_name_1 = "link"
+        req.model_name_2 = "robot"
+        req.link_name_2 = "wrist_3_link"
+        attach_srv.call(req)
 
 
-def open_gripper(model_name):
-
-    rospy.loginfo("Detaching object and gripper")
-
-    """
-        Destroy dynamic joint
-    """
-    req = AttachRequest()
-    req.model_name_1 = model_name
-    req.link_name_1 = "link"
-    req.model_name_2 = "robot"
-    req.link_name_2 = "wrist_3_link"
-    detach_srv.call(req)
-
+def open_gripper(model_name=None):
     set_gripper(0.0)
+
+    # Destroy dynamic joint
+    if model_name is not None:
+        req = AttachRequest()
+        req.model_name_1 = model_name
+        req.link_name_1 = "link"
+        req.model_name_2 = "robot"
+        req.link_name_2 = "wrist_3_link"
+        detach_srv.call(req)
 
 
 def set_model_fixed(model_name):
@@ -371,8 +319,7 @@ def get_approach_angle(model_quat, facing_direction):#get gripper approach angle
 
 
 def get_lego_pos_by_name(name):
-    legos=ModelStates()
-    legos=get_legos_pos()
+    legos=get_legos_pos(vision=True)
     for lego in legos:
         if(name == lego[0]):
             return lego
@@ -390,13 +337,8 @@ def set_gripper(value):
 if __name__ == "__main__":
     print("Initializing kinematics node")
     rospy.init_node("send_joints")
-    # Create an action client for the joint trajector
-    action_trajectory = actionlib.SimpleActionClient(
-        "/trajectory_controller/follow_joint_trajectory",
-        control_msgs.msg.FollowJointTrajectoryAction,
-    )
-    print("Waiting for joint controller action")
-    action_trajectory.wait_for_server()
+
+    controller = ArmController()
 
     # Create an action client for the gripper
     action_gripper = actionlib.SimpleActionClient(
@@ -413,25 +355,19 @@ if __name__ == "__main__":
     attach_srv.wait_for_service()
     detach_srv.wait_for_service()
 
-    legos = get_legos_pos()
-    legos.sort(reverse=False , key=lambda a: (a[1].position.x, a[1].position.y))
-    #choose destination
+    controller.move_to(*DEFAULT_POS, DEFAULT_QUAT)
+    print("Waiting for models detection")
+    rospy.sleep(0.5)
+    legos = get_legos_pos(vision=True)
+    legos.sort(reverse=False, key=lambda a: (a[1].position.x, a[1].position.y))
+
     model_index = -1
-    #print(legos)
-
     for model_name, model_pose in legos:
-        if("lego_" not in model_name):
-            continue
-
+        open_gripper()
         try:
-            # TODO: temporary fix for gazebo model_states
-            fixed_model_name = model_name.rsplit("_", maxsplit=1)[0]
-
-            model_index = MODELS.index(fixed_model_name)
+            model_index = MODELS.index(model_name)
         except ValueError as e:
             print(f"Model name {model_name} was not recognized!")
-
-        print(f"Moving model {model_name}")
 
         # Get actual model_name at model xyz coordinates
         try:
@@ -442,27 +378,24 @@ if __name__ == "__main__":
 
         # Straighten lego
         straighten(model_pose, model_name, model_index)
+        controller.move(dz=0.15)
 
         """
             Go to destination
         """
-        print("MODEL ", model_index)
-        target_pos=lego_info[model_index,0], lego_info[model_index,1], lego_info[model_index,2]
-        rospy.sleep(0.1)
-        move_to(DEFAULT_POS, DEFAULT_QUAT, (target_pos[0], target_pos[1], DEFAULT_POS[2]), DEFAULT_QUAT)
+        x, y, z = lego_info[model_index,0], lego_info[model_index,1], lego_info[model_index,2]
+        print(f"Moving model {model_name} to {x} {y} {z}")
+
+        controller.move_to(x, y, target_quat=DEFAULT_QUAT)
         # Lower the object and release
-        move_to(target_pos, DEFAULT_QUAT, target_pos, DEFAULT_QUAT)
+        controller.move_to(x, y, z)
         # set_model_fixed(model_name)
         open_gripper(model_name)
+        controller.move(dz=0.15)
 
         # increment z in order to stack lego correctly
         lego_info[model_index, 2] += lego_info[model_index, 3]
-
-        #rospy.wait_for_service("/gazebo/reset_world")
-        #reset_world = rospy.ServiceProxy("/gazebo/reset_world", Empty)
-        #reset_world()
-        #previous_name=name
-        #rospy.sleep(0.1)
     print("Moving to DEFAULT_POS")
-    send_joints(*DEFAULT_POS, DEFAULT_QUAT)
+    controller.move_to(*DEFAULT_POS, DEFAULT_QUAT)
+    open_gripper()
     rospy.sleep(0.4)

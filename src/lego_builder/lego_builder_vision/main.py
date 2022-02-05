@@ -153,10 +153,10 @@ def camera_callback(image_color, image_depth, model_infos):
 
         # Calculate the object quaternion
         if pose_id == 0:    # UP
-            rotZ = rotZ if horizontal else rotZ + math.pi / 2
+            rotZ = rotZ + math.pi / 2 if horizontal else rotZ
             quat = PyQuaternion(axis=(0, 0, 1), angle=0)        # z-axis along world-frame z-axis
         elif pose_id == 1:  # DOWN
-            rotZ = rotZ if horizontal else rotZ + math.pi / 2
+            rotZ = rotZ + math.pi / 2 if horizontal else rotZ
             quat = PyQuaternion(axis=(0, 1, 0), angle=math.pi)  # z-axis along world-frame negative z-axis
         elif pose_id == 2:  # NORTH
             quat = PyQuaternion(axis=(1, 0, 0), angle=math.pi/2)
