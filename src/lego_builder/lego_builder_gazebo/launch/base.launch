@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Export env variable so that gazebo finds our models -->
+  <env name="GAZEBO_MODEL_PATH"
+       value="$(find lego_builder_gazebo)/../models:$(optenv GAZEBO_MODEL_PATH)" />
+  
+  <!-- Launch file parameters -->
+  <arg name="paused"     default="true"/>
+  <arg name="debug"      default="false"/>
+  <arg name="gui"        default="true"/>
+  <arg name="rate"       default="125" />
+  <arg name="world_name" default="$(find lego_builder_gazebo)/worlds/base.world" />
+  
+  <!-- Start up simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world_name)"/>
+    <arg name="paused"     value="$(arg paused)"/>
+    <arg name="debug"      value="$(arg debug)"/>
+    <arg name="gui"        value="$(arg gui)"/>
+  </include>
+
+    <arg name="sdf_robot_file" default="$(find lego_builder_gazebo)../models/cafe_table/model.sdf"/>
+
+  <!-- Send robot urdf to param server -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find ur5_description)/urdf/ur5_robotiq85_gripper.urdf.xacro'" />
+  <!-- Spawn robot in gazebo (and move it upwards):
+       better initial values should be -2.355 and 1.57 but the robot does
+       something strange when unpausing it
+  -->
+
+  <!-- Enable PID -->
+  <rosparam file="$(find ur5_description)/config/gazebo_ros_control_params.yaml" />
+
+  <!-- Spawn ur5 robotic arm -->
+  <node name="spawn_ur5" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -param robot_description -model robot -z 0.775050 -Y -3.1415926535
+              -J shoulder_pan_joint -1.57
+              -J shoulder_lift_joint -1.8
+              -J elbow_joint -1.0
+              -J wrist_2_joint 1.57"
+  output="screen" />
+
+  <!-- Spawn Work surface -->
+  <node name="spawn_work_surface" pkg="gazebo_ros" type="spawn_model"
+        args="-sdf -file $(arg sdf_robot_file) -model cafe_table -x 0 -y -0.558 -z 0 -Y -3.1415926535"
+  output="screen" />
+
+  <!-- Load ur5 controllers -->
+  <include file="$(find ur5_gazebo)/launch/ur5_controllers.launch" />
+</launch>
