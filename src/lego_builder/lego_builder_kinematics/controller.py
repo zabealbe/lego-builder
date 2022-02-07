@@ -66,7 +66,7 @@ class ArmController:
         def smooth(percent_value, period=math.pi):
             return (1 - math.cos(percent_value * period)) / 2
 
-        steps = 15
+        steps = 30
         step = 1 / steps
 
         (sx, sy, sz), start_quat = self.gripper_pose
@@ -84,18 +84,18 @@ class ArmController:
 
         for i in np.arange(0, 1 + step, step):
             i_2 = smooth(i, 2 * math.pi)  # from 0 to 1 to 0
-            i = smooth(i)  # from 0 to 1
+            i_1 = smooth(i)  # from 0 to 1
 
             grip = Quaternion.slerp(start_quat, target_quat, i)
-            print(0.25/(i+1))
+            #print(0.25/(i+1))
             self.send_joints(
-                sx + i*dx, sy + i*dy, sz + i*dz + i_2*z_raise,
+                sx + i_1*dx, sy + i_1*dy, sz + i_1*dz + i_2*z_raise,
                 grip,
-                duration=(0.5/(i+1)))
-            rospy.sleep(0.1)
+                duration=0.1)
+            rospy.sleep(0.025)
 
         if blocking:
-            self.wait_for_position(tol_pos=0.02, tol_vel=0.01)
+            self.wait_for_position(tol_pos=0.1, tol_vel=0.01)
 
         self.gripper_pose = (x, y, z), target_quat
 
@@ -117,7 +117,7 @@ class ArmController:
 
         #self.wait_for_position(tol_pos=0.1, tol_vel=1)
 
-    def wait_for_position(self, timeout=3, tol_pos=0.01, tol_vel=0.01):
+    def wait_for_position(self, timeout=0.1, tol_pos=0.01, tol_vel=0.01):
         end = rospy.Time.now() + rospy.Duration(timeout)
         while rospy.Time.now() < end:
             msg = get_controller_state(self.controller_topic)
@@ -127,5 +127,4 @@ class ArmController:
                     if abs(actual - desired) > tol_pos:
                         break
                     return
-        #raise Exception("Timeout waiting for position")
         rospy.logwarn("Timeout waiting for position")

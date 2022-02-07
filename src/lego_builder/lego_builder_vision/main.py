@@ -48,7 +48,7 @@ def init(camera_name):
     camera_info = rospy.wait_for_message("/camera/color/camera_info", CameraInfo)
     rospy.wait_for_service("/gazebo/get_model_state")
     camera_state_srv = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-    camera_state = camera_state_srv("kinect", "")  # Change this to your model name
+    camera_state = camera_state_srv(camera_name, "")  # Change this to your model name
     camera_pose = my_utils.rob2cam(camera_state.pose)  # Convert to camera axis convention
 
     # Build camera reference frame
@@ -115,6 +115,7 @@ def camera_callback(image_color, image_depth, model_infos):
         # crop the depth image from the bounding box
         depth_crop = depth[y1:y2, x1:x2]
         depth_crop_max = depth_crop.max()
+        depth_crop_min = depth_crop.max()
 
         model_info = model_infos[clss_id]
 
@@ -131,11 +132,25 @@ def camera_callback(image_color, image_depth, model_infos):
         # Infer pose using custom model
         pose_id, pose_conf = detect_yofo(torch.from_numpy(depth_crop))
 
+        model_size = model_info["size"]
+
+        # Get the camera facing axis of the object
+        model_height = depth_crop_max - depth_crop_min
+        if pose_id == 0:  # up
+            axis = 2
+        elif pose_id == 1:  # down
+            axis = 2
+        else:
+            if model_height < model_size[0] + 0.005:
+                axis = 0
+            else:
+                axis = 1
+
         # Find the x-y-z coordinates of the object
         model_xyz = np.array(
             [int(rect[0][0] + x1),
              int(rect[0][1] + y1),
-             depth_crop_max,
+             depth_crop_max + model_height/2,
              1],
             dtype=np.float32)
         model_xyz[:2] /= image_color.shape[1], image_color.shape[0]
@@ -144,19 +159,16 @@ def camera_callback(image_color, image_depth, model_infos):
         model_xyz[:2] *= (0.900, 0.900)
         model_xyz = np.dot(camera_frame, model_xyz)
 
-        # Get the camera facing axis of the object
-        axis = "x"  # axis facing the camera
-
         # Calculate xy-plane rotation mod 180°
         rotZ = - rect[2] / 90 * (math.pi/2)
         horizontal = rect[1][0] < rect[1][1]  # rect long side is along x-axis
 
         # Calculate the object quaternion
         if pose_id == 0:    # UP
-            rotZ = rotZ + math.pi / 2 if horizontal else rotZ
+            rotZ = rotZ if horizontal else rotZ + math.pi / 2
             quat = PyQuaternion(axis=(0, 0, 1), angle=0)        # z-axis along world-frame z-axis
         elif pose_id == 1:  # DOWN
-            rotZ = rotZ + math.pi / 2 if horizontal else rotZ
+            rotZ = rotZ if horizontal else rotZ + math.pi / 2
             quat = PyQuaternion(axis=(0, 1, 0), angle=math.pi)  # z-axis along world-frame negative z-axis
         elif pose_id == 2:  # NORTH
             quat = PyQuaternion(axis=(1, 0, 0), angle=math.pi/2)
@@ -172,8 +184,10 @@ def camera_callback(image_color, image_depth, model_infos):
             rotZ += math.pi/2
         else:
             raise ValueError("Unknown pose id: {}".format(pose_id))
-        if axis == "x":
+        if axis == 0:
             quat *= PyQuaternion(axis=(0, 0, 1), angle=math.pi / 2)
+        else:
+            pass
         quat = PyQuaternion(axis=(0, 0, 1), angle=rotZ) * quat  # apply x-y world plane rotation
 
         # Store the estimated pose
@@ -243,11 +257,11 @@ if __name__ == "__main__":
     warnings.simplefilter("ignore")
 
     # Setting default device for pytorch
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.set_grad_enabled(False)
 
     print("Initializing vision node")
-    rospy.init_node("ros_yolo")
+    rospy.init_node("lego_builder_vision")
 
     print("  Loading camera sensor parameters")
     camera_frame, camera_view, camera_matrix, dist_coeffs = init("kinect")
@@ -268,10 +282,10 @@ if __name__ == "__main__":
 
     print(f"  Loading 3D models dimensions")
     model_infos = []
-    for m in MODELS:
+    for model in MODELS:
         model_infos.append({
-            "name": m,
-            "size": (0, 0, 0)#my_utils.get_model_size(m)
+            "name": model,
+            "size": my_utils.get_model_size(f"lego_{model}", f"{PKG_PATH}/../models")
         })
 
     print(f"  Initializing ROS publisher and ROS subscriber")
@@ -286,7 +300,6 @@ if __name__ == "__main__":
     image_view = np.zeros((camera_view[1], camera_view[0], 3), dtype=np.uint8)
     print(f"Starting main loop...")
     # Visualize results from camera_callback
-    #rospy.spin()
     while not rospy.is_shutdown():
         cv2.imshow("Predictions", image_view)
         cv2.waitKey(1)

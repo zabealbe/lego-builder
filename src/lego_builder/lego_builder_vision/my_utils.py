@@ -6,11 +6,9 @@ import copy
 import numpy as np
 from pyquaternion import Quaternion
 
-MODELS_PATH = "models"
 
-
-def get_model_size(model_name):
-    model_json_path = os.path.join(MODELS_PATH, model_name, "model.json")
+def get_model_size(model_name, models_path="models"):
+    model_json_path = os.path.join(models_path, model_name, "model.json")
     # make path absolute
     model_json_path = os.path.abspath(model_json_path)
     # check path exists

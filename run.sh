@@ -3,17 +3,23 @@
 DOCKER_IMAGE=ros-noetic
 cmd=$0
 
+# Exit if we are not in a docker container
 function in_docker(){
 	[ -f /.dockerenv ] || { echo "This option is only allowed while in Docker!" && exit 1; };
 }
 
+# Build the docker image
 function docker_build() {
 	docker build -t ${DOCKER_IMAGE} Docker
 }
+
+# Start the docker container
 function docker_start() {
-	# Docker build if not already
+  # Build the docker image if it does not exist
 	[[ ! "$(docker images -q ${DOCKER_IMAGE}:latest 2> /dev/null)" == "" ]] || docker_build
+	# Enable x11 forwarding
 	xhost +local:`docker inspect --format='{{ .Config.Hostname }}' ros-noetic`
+	# Launch the docker container
 	docker run \
 		-dt --rm \
 		-e ROS_HOSTNAME=localhost \
@@ -24,14 +30,17 @@ function docker_start() {
 		--workdir /home/ros/Workspace \
 		--name ${DOCKER_IMAGE} \
 		${DOCKER_IMAGE}
+  # Source the ROS setup script
+  docker exec -it ${DOCKER_IMAGE} bash -c "echo 'source ~/Workspace/devel/setup.bash' >> ~/.bashrc"
 }
 function docker_bash() {
     # Docker start if not already
     [[ $(docker ps --filter "name=^/$DOCKER_IMAGE$" --format '{{.Names}}') == $DOCKER_IMAGE ]] || docker_start
-    #
+    # Create a new bash session in the docker container
     docker exec -it ${DOCKER_IMAGE} bash
 }
 function docker_stop() {
+    # Stop the docker container
     docker stop ${DOCKER_IMAGE}
 }
 function devel() {
@@ -54,30 +63,26 @@ function setup() {
     rosdep install -y --rosdistro $ROS_DISTRO --ignore-src --from-paths src
     catkin_make
 }
-function launch() {
-    launch.sh
-}
 function clean() {
     docker_stop
 }
 
-# Utilities
-function view() {
-    rosrun image_view image_view image:=/camera/color/image_raw
+function run_master() {
+    devel
 }
-function view_depth() {
-    rosrun image_view image_view image:=/camera/depth/image_raw
-}
-function run_vision() {
-    source devel/setup.bash
 
+function run_vision() {
     rosrun lego_builder_vision main.py
 }
 
 function run_kinematics() {
-  source devel/setup.bash
-
   rosrun lego_builder_kinematics main.py
+}
+
+function run_all() {
+    (run_master) > /dev/null &
+    (run_vision) > /dev/null &
+    run_kinematics
 }
 
 eval $1

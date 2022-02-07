@@ -14,11 +14,6 @@ RUN apt install -y curl gnupg lsb-release wget build-essential
 #
 # Install python
 RUN apt install -y python3 python3-pip python3-tk && ln -s /usr/bin/python3 /usr/bin/python
-# Install yolo dependencies
-RUN pip install -r https://raw.githubusercontent.com/ultralytics/yolov5/master/requirements.txt
-# Install project dependencies
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
 
 #
 # install ros packages
@@ -36,6 +31,19 @@ RUN apt install -y ros-noetic-soem # Ethercat stuff
 #RUN apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool
 #RUN apt install -y ros-noetic-moveit # Moveit
 
+#
+# Install project dependencies
+#
+RUN pip install -r https://raw.githubusercontent.com/ultralytics/yolov5/master/requirements.txt
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+COPY src/lego_builder/lego_builder_vision/yolo/yolov5/requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+
+# Yolo font
+ADD https://ultralytics.com/assets/Arial.ttf /home/ros/.config/Ultralytics/Arial.ttf
+RUN chown -R ros:ros /home/ros/.config/Ultralytics
+
 # Cleanup
 #RUN rm -rf /var/lib/apt/lists/*
 
@@ -44,7 +52,6 @@ RUN sed -i 's/(ALL:ALL) ALL/(ALL) NOPASSWD: ALL/' /etc/sudoers
 
 # Add ros user with home folder
 RUN useradd -ms /bin/bash -G sudo ros
-ADD https://ultralytics.com/assets/Arial.ttf /home/ros/.config/Ultralytics/Arial.ttf
 RUN chown -R ros:ros /home/ros
 # Switch to the newly created user
 USER ros
