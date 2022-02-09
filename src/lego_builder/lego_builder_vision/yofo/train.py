@@ -127,7 +127,7 @@ def train(model, num_epochs, dataset, device):
 
         # Save the model if the accuracy is the best
         if best_acc_value < acc_value:
-            save_model()
+#            save_model()
             best_acc_value = acc_value
 
             # Print the statistics of the epoch

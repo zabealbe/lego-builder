@@ -5,9 +5,9 @@ joint_state_controller:
 
 # Gripper controller
 gripper_controller:
-  type: effort_controllers/GripperActionController
+  type: position_controllers/GripperActionController
   gains:
-    robotiq_85_left_knuckle_joint: {p: 10,  d: 0.1, i: 1, i_clamp: 1}
+    robotiq_85_left_knuckle_joint: {p: 4,  d: 0.1, i: 0, i_clamp: 0}
   joint: robotiq_85_left_knuckle_joint
   action_monitor_rate: 20
   goal_tolerance: 0.002

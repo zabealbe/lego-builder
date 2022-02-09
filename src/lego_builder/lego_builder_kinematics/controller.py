@@ -12,7 +12,7 @@ def get_controller_state(controller_topic):
     return rospy.wait_for_message(
         f"{controller_topic}/state",
         control_msgs.msg.JointTrajectoryControllerState,
-        timeout=2)
+        timeout=10)
 
 
 class ArmController:
@@ -66,9 +66,6 @@ class ArmController:
         def smooth(percent_value, period=math.pi):
             return (1 - math.cos(percent_value * period)) / 2
 
-        steps = 30
-        step = 1 / steps
-
         (sx, sy, sz), start_quat = self.gripper_pose
 
         if x is None:
@@ -81,21 +78,25 @@ class ArmController:
             target_quat = start_quat
 
         dx, dy, dz = x - sx, y - sy, z - sz
+        length = math.sqrt(dx ** 2 + dy ** 2 + dz ** 2) * 300 + 80
+        speed = length
+
+        steps = int(length)
+        step = 1 / steps
 
         for i in np.arange(0, 1 + step, step):
             i_2 = smooth(i, 2 * math.pi)  # from 0 to 1 to 0
             i_1 = smooth(i)  # from 0 to 1
 
-            grip = Quaternion.slerp(start_quat, target_quat, i)
-            #print(0.25/(i+1))
+            grip = Quaternion.slerp(start_quat, target_quat, i_1)
             self.send_joints(
                 sx + i_1*dx, sy + i_1*dy, sz + i_1*dz + i_2*z_raise,
                 grip,
-                duration=0.1)
-            rospy.sleep(0.025)
+                duration=1/speed*0.9)
+            rospy.sleep(1/speed)
 
         if blocking:
-            self.wait_for_position(tol_pos=0.1, tol_vel=0.01)
+            self.wait_for_position(tol_pos=0.005, tol_vel=0.08)
 
         self.gripper_pose = (x, y, z), target_quat
 
@@ -117,7 +118,7 @@ class ArmController:
 
         #self.wait_for_position(tol_pos=0.1, tol_vel=1)
 
-    def wait_for_position(self, timeout=0.1, tol_pos=0.01, tol_vel=0.01):
+    def wait_for_position(self, timeout=2, tol_pos=0.01, tol_vel=0.01):
         end = rospy.Time.now() + rospy.Duration(timeout)
         while rospy.Time.now() < end:
             msg = get_controller_state(self.controller_topic)
