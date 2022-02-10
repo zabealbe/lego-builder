@@ -3,17 +3,19 @@
 import os
 import sys
 import math
-import rospy
-
-
 import random
 from pyquaternion import Quaternion as PyQuaternion
+
+import rospy
 from gazebo_msgs.srv import SpawnModel, DeleteModel, DeleteModelRequest
 from geometry_msgs.msg import Pose, Point, Quaternion
 from gazebo_msgs.msg import ModelStates
 
 import time
 random.seed(time.time())
+
+PKG_PATH = os.path.dirname(os.path.abspath(__file__))
+MODELS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
 
 TABLE_CENTER = Point(x=0, y=-0.558, z=0.80)
 
@@ -87,7 +89,6 @@ BBOX_SDF_TEMPLATE = """<?xml version="1.0"?>
 
 
 def spawn_bboxes(pose):
-    point = pose.position
     # generate 11 different colours
     colours = [
         (0.0, 0.0, 0.0, 1),
@@ -182,7 +183,7 @@ def spawn_bbox(width, height, pose, colour=(0, 0, 0, 1)):
 
 
 def spawn_checkerboard():
-    checkerboard_path = "../models/checkerboard/checkerboard.sdf"
+    checkerboard_path = f"{MODELS_PATH}/checkerboard/checkerboard.sdf"
     pose = Pose(
         TABLE_CENTER,
         Quaternion(x=0, y=0, z=0, w=0))
@@ -191,7 +192,7 @@ def spawn_checkerboard():
         spawn_model_prox("checkerboard", f.read(), "", pose, "world")
 
 
-def get_legos(models_path="../models", mode="path"):
+def get_legos(models_path=MODELS_PATH, mode="path"):
     models = [f"{x}" for x in os.listdir(models_path) if "lego_" in x]
     if mode == "path":
         models = [f"{models_path}/{x}" for x in models]

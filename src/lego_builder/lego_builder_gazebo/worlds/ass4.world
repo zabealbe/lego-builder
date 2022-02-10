@@ -1,0 +1,804 @@
+<?xml version="1.0" ?>
+
+<sdf version="1.7">
+  <world name="base">
+    <plugin name="ros_link_attacher_plugin" filename="libgazebo_ros_link_attacher.so"/>
+
+    <gravity>0 0 -9.81</gravity>
+    <gui fullscreen="0">
+      <camera name="user_camera">
+        <pose>3.11856 -1.39686 2.04315 0 0.609996 3.08568</pose>
+        <view_controller>orbit</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+    <physics name="default_physics" default="0" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+      <shadows>1</shadows>
+    </scene>
+    <light name="sun" type="directional">
+      <cast_shadows>0</cast_shadows>
+      <pose>0 0 10 0 -0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <model name="ground_plane">
+      <pose>0 0 0 0 -0 0</pose>
+      <static>1</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <contact>
+              <collide_bitmask>65535</collide_bitmask>
+              <ode/>
+            </contact>
+            <friction>
+              <ode>
+                <mu>100</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name="visual">
+          <cast_shadows>0</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name="kinect">
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>model://kinect/meshes/kinect.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <sensor name="camera" type="depth">
+          <update_rate>20</update_rate>
+          <camera>
+            <horizontal_fov>1</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>640</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.05</near>
+              <far>3</far>
+            </clip>
+          </camera>
+          <plugin name="camera_plugin" filename="libgazebo_ros_openni_kinect.so">
+            <baseline>0.2</baseline>
+            <alwaysOn>1</alwaysOn>
+            <updateRate>0.0</updateRate>
+            <cameraName>camera_ir</cameraName>
+            <imageTopicName>/camera/color/image_raw</imageTopicName>
+            <cameraInfoTopicName>/camera/color/camera_info</cameraInfoTopicName>
+            <depthImageTopicName>/camera/depth/image_raw</depthImageTopicName>
+            <depthImageCameraInfoTopicName>/camera/depth/camera_info</depthImageCameraInfoTopicName>
+            <pointCloudTopicName>/camera/depth/points</pointCloudTopicName>
+            <frameName>camera_link</frameName>
+            <pointCloudCutoff>0.5</pointCloudCutoff>
+            <pointCloudCutoffMax>3.0</pointCloudCutoffMax>
+            <distortionK1>0</distortionK1>
+            <distortionK2>0</distortionK2>
+            <distortionK3>0</distortionK3>
+            <distortionT1>0</distortionT1>
+            <distortionT2>0</distortionT2>
+            <CxPrime>0</CxPrime>
+            <Cx>0</Cx>
+            <Cy>0</Cy>
+            <focalLength>0</focalLength>
+            <hackBaseline>0</hackBaseline>
+          </plugin>
+        </sensor>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <static>1</static>
+    </model>
+    <state world_name="base">
+      <sim_time>299 146000000</sim_time>
+      <real_time>0 0</real_time>
+      <wall_time>1642266706 209283756</wall_time>
+      <iterations>0</iterations>
+      <model name="kinect">
+        <pose>0 -0.558 1.58 1.58 1.57079 0</pose>
+      </model>
+            <model name='lego_X1-Y1-Z2'>
+        <pose>-0.211675 -0.576668 0.810907 4e-05 0 0.056845</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.211675 -0.576668 0.810907 4e-05 0 0.056845</pose>
+          <velocity>0.000257 -0.003563 -0.001859 0.122949 0.008832 5.6e-05</velocity>
+          <acceleration>0 0 0 -0 -5e-06 2e-06</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lego_X1-Y1-Z2_0'>
+        <pose>-0.186503 -0.337505 0.810909 6.1e-05 1.3e-05 1.00461</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.186503 -0.337505 0.810909 6.1e-05 1.3e-05 1.00461</pose>
+          <velocity>-0.003404 -0.000343 -0.002569 0.012812 -0.117237 -0.001301</velocity>
+          <acceleration>0 0 0 5.7e-05 6e-06 -6e-06</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lego_X1-Y1-Z2_1'>
+        <pose>-0.322096 -0.312012 0.810909 0 3.5e-05 0.045523</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.322096 -0.312012 0.810909 0 3.5e-05 0.045523</pose>
+          <velocity>-0.001929 0.000683 0.001691 -0.023648 -0.066579 8.4e-05</velocity>
+          <acceleration>0 0 0 -2e-06 1e-06 -2e-06</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lego_X1-Y2-Z2'>
+        <pose>-0.396859 -0.190731 0.810899 -2.3e-05 0.000215 -0.332383</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.396859 -0.190731 0.810899 -2.3e-05 0.000215 -0.332383</pose>
+          <velocity>0.006312 -0.002823 -0.010715 0.099092 0.235297 -0.008639</velocity>
+          <acceleration>0 0 0 0.000464 -0.000107 0.002247</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lego_X1-Y2-Z2_0'>
+        <pose>-0.379729 -0.42711 0.810908 0 -0 0.851339</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.379729 -0.42711 0.810908 0 -0 0.851339</pose>
+          <velocity>0.001374 0.005694 0.000141 -0.202612 0.048868 1.8e-05</velocity>
+          <acceleration>0 0 0 2e-06 8e-06 -0.009334</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lego_X1-Y2-Z2_1'>
+        <pose>-0.382858 -0.550142 0.810921 -0.000138 -0.000586 1.26204</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.382858 -0.550142 0.810921 -0.000138 -0.000586 1.26204</pose>
+          <velocity>0.000451 -0.002703 0.009942 0.078578 0.013414 -0.01423</velocity>
+          <acceleration>0 0 0 -0.000239 -0.000142 -0.001356</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lego_X1-Y2-Z2_2'>
+        <pose>-0.26026 -0.471879 0.810906 -1.5e-05 -0.000207 -0.933508</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.26026 -0.471879 0.810906 -1.5e-05 -0.000207 -0.933508</pose>
+          <velocity>-0.000446 -0.001067 -0.006881 0.046472 0.000519 -0.014803</velocity>
+          <acceleration>0 0 0 0.000183 -9e-06 0.000536</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lego_X1-Y3-Z2'>
+        <pose>-0.238806 -0.225905 0.847802 0.000108 -0.00021 -0.432463</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.238806 -0.225905 0.847802 0.000108 -0.00021 -0.432463</pose>
+          <velocity>-0.00146 0.001538 0.008582 -0.055931 -0.052505 -0.000524</velocity>
+          <acceleration>0 0 0 -2e-05 3e-06 0.001509</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+    </state>
+        <model name='lego_X1-Y2-Z2'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>1e-06 7e-06 0.000398 0 -0 0</pose>
+          <mass>0.146868</mass>
+          <inertia>
+            <ixx>0.000100644</ixx>
+            <ixy>-2.20574e-09</ixy>
+            <ixz>6.78532e-10</ixz>
+            <iyy>5.89081e-05</iyy>
+            <iyz>-2.30188e-08</iyz>
+            <izz>7.98702e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.402018 -0.8597 0 0 -0 0</pose>
+    </model>
+    <model name='lego_X1-Y2-Z2_0'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>1e-06 7e-06 0.000398 0 -0 0</pose>
+          <mass>0.146868</mass>
+          <inertia>
+            <ixx>0.000100644</ixx>
+            <ixy>-2.20574e-09</ixy>
+            <ixz>6.78532e-10</ixz>
+            <iyy>5.89081e-05</iyy>
+            <iyz>-2.30188e-08</iyz>
+            <izz>7.98702e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.395276 -0.786753 0 0 -0 0</pose>
+    </model>
+    <model name='lego_X1-Y2-Z2_1'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>1e-06 7e-06 0.000398 0 -0 0</pose>
+          <mass>0.146868</mass>
+          <inertia>
+            <ixx>0.000100644</ixx>
+            <ixy>-2.20574e-09</ixy>
+            <ixz>6.78532e-10</ixz>
+            <iyy>5.89081e-05</iyy>
+            <iyz>-2.30188e-08</iyz>
+            <izz>7.98702e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.398107 -0.803679 0 0 -0 0</pose>
+    </model>
+    <model name='lego_X1-Y2-Z2_2'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>1e-06 7e-06 0.000398 0 -0 0</pose>
+          <mass>0.146868</mass>
+          <inertia>
+            <ixx>0.000100644</ixx>
+            <ixy>-2.20574e-09</ixy>
+            <ixz>6.78532e-10</ixz>
+            <iyy>5.89081e-05</iyy>
+            <iyz>-2.30188e-08</iyz>
+            <izz>7.98702e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y2-Z2/meshes/X1-Y2-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.37659 -0.792548 0 0 -0 0</pose>
+    </model>
+    <model name='lego_X1-Y3-Z2'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>1e-06 1e-06 0.000653 0 -0 0</pose>
+          <mass>0.212844</mass>
+          <inertia>
+            <ixx>0.000243994</ixx>
+            <ixy>-2.47623e-10</ixy>
+            <ixz>-4.81047e-09</ixz>
+            <iyy>8.5861e-05</iyy>
+            <iyz>-7.44265e-09</iyz>
+            <izz>0.000214469</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y3-Z2/meshes/X1-Y3-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y3-Z2/meshes/X1-Y3-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.272929 -0.786463 0 0 -0 0</pose>
+    </model>
+    <model name='lego_X1-Y1-Z2'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>2e-06 -0 -0.000475 0 -0 0</pose>
+          <mass>0.0802771</mass>
+          <inertia>
+            <ixx>3.14179e-05</ixx>
+            <ixy>-2.69251e-09</ixy>
+            <ixz>-4.52438e-09</ixz>
+            <iyy>3.14364e-05</iyy>
+            <iyz>3.14783e-09</iyz>
+            <izz>1.98462e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y1-Z2/meshes/X1-Y1-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y1-Z2/meshes/X1-Y1-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>0 0.9 0 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.310705 -0.813145 0 0 -0 0</pose>
+    </model>
+    <model name='lego_X1-Y1-Z2_0'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>2e-06 -0 -0.000475 0 -0 0</pose>
+          <mass>0.0802771</mass>
+          <inertia>
+            <ixx>3.14179e-05</ixx>
+            <ixy>-2.69251e-09</ixy>
+            <ixz>-4.52438e-09</ixz>
+            <iyy>3.14364e-05</iyy>
+            <iyz>3.14783e-09</iyz>
+            <izz>1.98462e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y1-Z2/meshes/X1-Y1-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y1-Z2/meshes/X1-Y1-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.305089 -0.811034 0 0 -0 0</pose>
+    </model>
+    <model name='lego_X1-Y1-Z2_1'>
+      <link name='link'>
+        <pose>-0 -0 -0 0 -0 0</pose>
+        <inertial>
+          <pose>2e-06 -0 -0.000475 0 -0 0</pose>
+          <mass>0.0802771</mass>
+          <inertia>
+            <ixx>3.14179e-05</ixx>
+            <ixy>-2.69251e-09</ixy>
+            <ixz>-4.52438e-09</ixz>
+            <iyy>3.14364e-05</iyy>
+            <iyz>3.14783e-09</iyz>
+            <izz>1.98462e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y1-Z2/meshes/X1-Y1-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <max_vel>0.01</max_vel>
+                <min_depth>0</min_depth>
+                <mu>0.1</mu>
+                <mu2>0.1</mu2>
+              </ode>
+            </contact>
+            <bounce>
+              <restitution_coefficient>0</restitution_coefficient>
+              <threshold>1e+06</threshold>
+            </bounce>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>model://lego_X1-Y1-Z2/meshes/X1-Y1-Z2.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+            <shader type='vertex'>
+              <normal_map>__default__</normal_map>
+            </shader>
+            <ambient>1 0 0 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.01 0.01 0.01 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>-0.407406 -0.831851 0 0 -0 0</pose>
+    </model>
+  </world>
+</sdf>

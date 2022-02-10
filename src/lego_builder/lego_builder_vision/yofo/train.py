@@ -1,23 +1,19 @@
-import random
-
-import numpy as np
 import torch
-
-from torch import optim
-from torchsummary import summary
-from torch.utils.data import DataLoader
-from sklearn import metrics as sk_metrics
 import matplotlib
-from matplotlib import pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sn
+from torch import optim
+from torchsummary import summary
+from matplotlib import pyplot as plt
+from torch.utils.data import DataLoader
+from sklearn import metrics as sk_metrics
 
 CLASSES = ["up", "down", "north", "south", "east", "west"]
 
-# Function to save the model
+
 def save_model():
     path = "./last.pt"
-    # save all the model parameters
     torch.save(model.state_dict(), path)
 
 

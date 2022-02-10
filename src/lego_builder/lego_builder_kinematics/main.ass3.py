@@ -18,42 +18,43 @@ PKG_PATH = os.path.dirname(os.path.abspath(__file__))
 
 MODELS_INFO = {
     "X1-Y2-Z1": {
-        "home": [0.072761, -0.802368, 0.777]
+        "home": [0.072761, -0.802368, 0.774]
     },
     "X2-Y2-Z2": {
-        "home": [0.376376, -0.802140, 0.777]
+        "home": [0.376376, -0.802140, 0.774]
     },
     "X1-Y3-Z2": {
-        "home": [0.375306, -0.640330, 0.777]
+        "home": [0.375306, -0.640330, 0.774]
     },
     "X1-Y2-Z2": {
-        "home": [-0.081469, -0.798799, 0.777]
+        "home": [-0.081469, -0.798799, 0.774]
     },
     "X1-Y2-Z2-CHAMFER": {
-        "home": [-0.237561, -0.801300, 0.777]
+        "home": [-0.237561, -0.801300, 0.774]
     },
     "X1-Y4-Z2": {
-        "home": [0.378296, -0.186005, 0.777]
+        "home": [0.378296, -0.186005, 0.774]
     },
     "X1-Y1-Z2": {
-        "home": [0.224808, -0.809098, 0.777]
+        "home": [0.224808, -0.809098, 0.774]
     },
     "X1-Y2-Z2-TWINFILLET": {
-        "home": [-0.380065, -0.797871, 0.777]
+        "home": [-0.380065, -0.797871, 0.774]
     },
     "X1-Y3-Z2-FILLET": {
-        "home": [0.378370, -0.491671, 0.777]
+        "home": [0.378370, -0.491671, 0.774]
     },
     "X1-Y4-Z1": {
-        "home": [0.372466, -0.338593, 0.777]
+        "home": [0.372466, -0.338593, 0.774]
     },
     "X2-Y2-Z2-FILLET": {
-        "home": [0.218573, -0.194531, 0.777]
+        "home": [0.218573, -0.194531, 0.774]
     }
 }
 
 for model, model_info in MODELS_INFO.items():
-    MODELS_INFO[model]["home"] = model_info["home"] + np.array([0.0, 0.10, 0.0])
+    pass
+    #MODELS_INFO[model]["home"] = model_info["home"] + np.array([0.0, 0.10, 0.0])
 
 for model, info in MODELS_INFO.items():
     model_json_path = os.path.join(PKG_PATH, "..", "models", f"lego_{model}", "model.json")
@@ -79,7 +80,7 @@ INTERLOCKING_OFFSET = 0.019
 
 SAFE_X = -0.40
 SAFE_Y = -0.13
-SURFACE_Z = 0.777
+SURFACE_Z = 0.774
 
 # Resting orientation of the end effector
 DEFAULT_QUAT = PyQuaternion(axis=(0, 1, 0), angle=math.pi)
@@ -89,32 +90,6 @@ DEFAULT_POS = (-0.1, -0.2, 1.2)
 DEFAULT_PATH_TOLERANCE = control_msgs.msg.JointTolerance()
 DEFAULT_PATH_TOLERANCE.name = "path_tolerance"
 DEFAULT_PATH_TOLERANCE.velocity = 10
-
-
-"""
-def send_joints(x, y, z, quat, blocking=True, duration=1.0):
-    th_res = get_Joints(x, y, z, quat.rotation_matrix)
-
-    goal = control_msgs.msg.FollowJointTrajectoryGoal()
-    goal.trajectory = copy.deepcopy(DEFAULT_JOINT_TRAJECTORY)
-    goal.trajectory.header.stamp = rospy.Time.now()
-
-    #goal.goal_tolerance = [DEFAULT_PATH_TOLERANCE]
-    goal.goal_time_tolerance = rospy.Duration(3)
-
-    point = trajectory_msgs.msg.JointTrajectoryPoint()
-    point.positions = th_res[:, 5]  # selecting 5th kinematic solution
-    point.time_from_start = rospy.Duration(duration)
-    # Set the points to the trajectory
-    goal.trajectory.points = [point]
-    # Publish the message
-    action_trajectory.send_goal(goal)
-    if blocking:  # Wait for result
-        action_trajectory.wait_for_result()
-
-    return action_trajectory.get_result()
-"""
-
 
 def get_gazebo_model_name(model_name, vision_model_pose):
     """
@@ -164,7 +139,7 @@ def straighten(model_pose, gazebo_model_name):
         z=model_pose.orientation.z,
         w=model_pose.orientation.w)
 
-    model_size = MODELS_INFO[get_model_name(model_name)]["size"]
+    model_size = MODELS_INFO[get_model_name(gazebo_model_name)]["size"]
 
     """
         Calculate approach quaternion and target quaternion
@@ -239,16 +214,17 @@ def straighten(model_pose, gazebo_model_name):
     if facing_direction != (0, 0, 1):
         z = SURFACE_Z + model_size[2]/2
 
-        controller.move_to(z=z, target_quat=target_quat, z_raise=0.15)
+        controller.move_to(z=z+0.05, target_quat=target_quat, z_raise=0.1)
+        controller.move(dz=-0.05)
         open_gripper(gazebo_model_name)
 
         # Re grip the model
-        controller.move_to(target_quat=regrip_quat, z_raise=0.15)
+        controller.move_to(z=z, target_quat=regrip_quat, z_raise=0.1)
         close_gripper(gazebo_model_name, model_size[0])
 
 
 def close_gripper(gazebo_model_name, closure=0):
-    set_gripper(0.8-closure*10)
+    set_gripper(0.81-closure*10)
     rospy.sleep(0.5)
     # Create dynamic joint
     if gazebo_model_name is not None:
@@ -274,7 +250,6 @@ def open_gripper(gazebo_model_name=None):
 
 
 def set_model_fixed(model_name):
-
     req = AttachRequest()
     req.model_name_1 = model_name
     req.link_name_1 = "link"
@@ -359,7 +334,7 @@ def set_gripper(value):
     goal = control_msgs.msg.GripperCommandGoal()
     goal.command.position = value  # From 0.0 to 0.8
     goal.command.max_effort = -1  # # Do not limit the effort
-    action_gripper.send_goal_and_wait(goal)
+    action_gripper.send_goal_and_wait(goal, rospy.Duration(10))
 
     return action_gripper.get_result()
 
@@ -386,6 +361,7 @@ if __name__ == "__main__":
     detach_srv.wait_for_service()
 
     controller.move_to(*DEFAULT_POS, DEFAULT_QUAT)
+
     print("Waiting for models detection")
     rospy.sleep(0.5)
     legos = get_legos_pos(vision=False)

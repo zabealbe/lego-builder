@@ -1,45 +1,31 @@
 #!/usr/bin/python3
 
 # libraries import
-from fileinput import close
-from sunau import AUDIO_FILE_ENCODING_FLOAT
-from typing import final
-from unittest.mock import DEFAULT
-import joint_controller
 import os
-import sys
 import time
-import rospy
 import math
 import copy
-import actionlib
-import control_msgs.msg
-from trajectory_msgs.msg import JointTrajectory
-from std_msgs.msg import Header
-from trajectory_msgs.msg import JointTrajectoryPoint
-from rospy.core import xmlrpcapi
-from std_msgs.msg import Float64
-from std_msgs.msg import String
-from gazebo_msgs.msg import ModelStates
-import rospy
-from trajectory_msgs.msg import JointTrajectory
-from std_msgs.msg import Header
-from pyquaternion import Quaternion as PyQuaternion
-import numpy as np
-from math import pi as pi
-from joint_controller import get_Joints
-from gazebo_ros_link_attacher.srv import SetStatic, SetStaticRequest, SetStaticResponse
-from gazebo_ros_link_attacher.srv import Attach, AttachRequest, AttachResponse
-from std_srvs.srv import Empty
-from control_msgs.msg import JointTrajectoryControllerState
-
 import json
 from dataclasses import dataclass
-from typing import List
-#class that define the building
-@dataclass
+import numpy as np
+from math import pi
+from pyquaternion import Quaternion as PyQuaternion
+
+from kinematics import get_joints
+
+import rospy
+import actionlib
+import control_msgs.msg
+from std_msgs.msg import Header
+from gazebo_msgs.msg import ModelStates
+from trajectory_msgs.msg import JointTrajectory
+from trajectory_msgs.msg import JointTrajectoryPoint
+from control_msgs.msg import JointTrajectoryControllerState
+from gazebo_ros_link_attacher.srv import Attach, AttachRequest, AttachResponse
+from gazebo_ros_link_attacher.srv import SetStatic, SetStaticRequest, SetStaticResponse
+
 #########################
-#class that defines a block in the building:
+# Class that defines a block in the building:
 #   x: x coordinate of the block
 #   y: y coordinate of the block
 #   z: z coordinate of the block
@@ -47,6 +33,7 @@ from typing import List
 #   P: block's pitch
 #   Y: block's yaw
 #########################
+@dataclass
 class block:
     lego_name: str
     x: float
@@ -57,26 +44,26 @@ class block:
     Y: float
     def __init__ (self,lego_name,x,y,z,R,P,Y):
         self.lego_name = lego_name
-        self.x=x
-        self.y=y
-        self.z=z
-        self.R=R
-        self.P=P
-        self.Y=Y
+        self.x = x
+        self.y = y
+        self.z = z
+        self.R = R
+        self.P = P
+        self.Y = Y
+
 #########################
-#class that defines a layer of the building
+# class that defines a layer of the building
 #########################
 class layer:
-    def __init__ (self):
-        self.legos=[]
-
+    def __init__(self):
+        self.legos = []
 
 
 SAFE_Z_OFFSET = 0.15
-gripper_closure= '0.1'
-lego_info = np.zeros( (11,5) )
+gripper_closure = '0.1'
+lego_info = np.zeros((11, 5))
 #########################
-#HARDCODED POSITIONS FOR LEGOS
+# HARDCODED POSITIONS FOR LEGOS
 # in [x,0], x defines the piece of lego in alphabetic order
 # in [1,x], with x=0 it defines X target position of lego numb 1
 #          with x=1 it defines Y target position of lego numb 1
@@ -84,6 +71,8 @@ lego_info = np.zeros( (11,5) )
 #          with x=3 it defines height of lego numb 1
 #          with x=4 it defines the fixed gripper closure for that block
 #########################
+
+PKG_PATH = os.path.dirname(os.path.abspath(__file__))
 
 MODELS = ["lego_X1-Y2-Z1", "lego_X2-Y2-Z2", "lego_X1-Y3-Z2", "lego_X1-Y2-Z2", "lego_X1-Y2-Z2-CHAMFER", "lego_X1-Y4-Z2", "lego_X1-Y1-Z2", "lego_X1-Y2-Z2-TWINFILLET", "lego_X1-Y3-Z2-FILLET", "lego_X1-Y4-Z1", "lego_X2-Y2-Z2-FILLET"]
 
@@ -141,7 +130,7 @@ lego_info[8,1] = -0.491671
 lego_info[8,2]=0.80
 lego_info[8,3]=0.057
 lego_info[8,4]=0.2
- # lego_X1-Y4-Z1
+# lego_X1-Y4-Z1
 lego_info[9,0]= 0.372466
 lego_info[9,1] = -0.338593
 lego_info[9,2]=0.80
@@ -154,17 +143,17 @@ lego_info[10,2]=0.82
 lego_info[10,3]=0.057
 lego_info[10,4]=0.1
 
-#definition of default quaternion for rotation
+# definition of default quaternion for rotation
 DEFAULT_QUAT = PyQuaternion(axis=(1, 0, 0), angle=math.pi)
-#definition of default position
+# definition of default position
 DEFAULT_POS  = (0.58, 0, 1)
 
 #############################
-#parser function: used to parse the structure of the building from the json file building.json into a layer structure
+# parser function: used to parse the structure of the building from the json file building.json into a layer structure
 #############################
 
 def parser():
-    f= open('building2.json')
+    f= open(f"{PKG_PATH}/building.json")
     l = json.load(f)
     layer_num = l['layer_number']
     Layers = []
@@ -191,34 +180,30 @@ def parser():
             print (j)
     f.close()
     return Layers
+
 #############################
-#Send_joints: fuction to send the robotic arm in a defined position
-#takes in input the values of x,y,z, a quaternion, the number of loops and the delay
+# Send_joints: fuction to send the robotic arm in a defined position
+# takes in input the values of x,y,z, a quaternion, the number of loops and the delay
 #############################
 def Send_joints(x,y,z,quat,loop_times=1,delay=0.05): #x,y,z and orientation of lego block
     i=0
-    rate = rospy.Rate(10)
-    th_res=get_Joints(x,y,z,quat.rotation_matrix)
+    joint_states = get_joints(x, y, z, quat.rotation_matrix)
 
     while not rospy.is_shutdown() and i<loop_times:
         pts = JointTrajectoryPoint()
-        index = 5
-        pts.positions = [ th_res[0,index], th_res[1,index], th_res[2,index], th_res[3,index], th_res[4,index],th_res[5,index]]
+        pts.positions = joint_states
         pts.time_from_start = rospy.Duration(0.3)
     # Set the points to the trajectory
         traj.points = []
         traj.points.append(pts)
     # Publish the message
         pub.publish(traj)
-        i=i+1
+        i = i+1
         rospy.sleep(delay)
-    ''' try:
-    catch					
-    except rospy.ROSInterruptException:
-        pass'''
+
 #############################
-#check_position_loop: function that is used to verify that the robotic arm has reached the desired position
-#when the difference between the robot joints positions is lower than epsilon the loop will end allowing code to continue execution
+# check_position_loop: function that is used to verify that the robotic arm has reached the desired position
+# when the difference between the robot joints positions is lower than epsilon the loop will end allowing code to continue execution
 #############################
 def check_position_loop():
     epsilon=0.05
@@ -232,16 +217,10 @@ def check_position_loop():
         if(valid == True):
             break;        
     time.sleep(0.02)
+
 #############################
-#move_smooth: function to move a piece from a place to an other, there are 4 possible modes of moving an object, each one of these has their particular interpolation function
-# in order to have the movement as smooth as possible according to the type of actions that the robot has to do:
-''' 
-    MODES:
-        0: 
-        1:
-        2:
-        3: 
-'''
+# move_smooth: function to move a piece from a place to an other, there are 4 possible modes of moving an object, each one of these has their particular interpolation function
+# in order to have the movement as smooth as possible according to the type of actions that the robot has to do
 #############################
 def move_smooth(point1,point2,initial_quat,final_quat,steps=15,mode=0): #make progress slow at the beginning and at the end  
     print('mode: '+str(mode))
@@ -279,9 +258,10 @@ def move_smooth(point1,point2,initial_quat,final_quat,steps=15,mode=0): #make pr
             check_position_loop()
     check_position_loop()
     rospy.sleep(0.3)
+
 #############################
-#get_gazebo_model_name: function to get the Gazebo model name from the vision name and position
-#in order to do that we check wich of the gazebo models is located into a square of side epsilon centered in vision_model_pose
+# get_gazebo_model_name: function to get the Gazebo model name from the vision name and position
+# in order to do that we check wich of the gazebo models is located into a square of side epsilon centered in vision_model_pose
 #############################
 def get_gazebo_model_name(vision_model_name, vision_model_pose):
     """
@@ -298,6 +278,7 @@ def get_gazebo_model_name(vision_model_name, vision_model_pose):
         if ds <= epsilon:
             return model_name
     raise ValueError(f"Model {vision_model_name} at position {vision_model_pose.position.x} {vision_model_pose.position.y} was not found!")
+
 #############################
 #get_lego_pos: function to decide where to take the lego names and position based on the variable vision
 #############################
@@ -309,6 +290,7 @@ def get_legos_pos():
     else:   
         legos = rospy.wait_for_message("/gazebo/model_states", ModelStates, timeout=None)
     return [(lego_name, lego_pose) for lego_name, lego_pose in zip(legos.name, legos.pose)]
+
 #############################
 #rotate_downside_lego: function used to rotate a downside lego in order to make its upside rotation easiera and safer
 #############################
@@ -339,6 +321,7 @@ def rotate_downside_lego(x,y,z,approach_angle,model_name):
     initial_quat=final_quat
     final_quat=DEFAULT_QUAT
     #move_smooth(initial_point,final_point,initial_quat,final_quat,mode=0,steps=30)
+
 #############################
 #straighten: general function to rotate a block, it calculates the approach quaternion based on the variable facing_direction that indicates how the block is placed
 #############################
@@ -468,8 +451,9 @@ def move_to_destination(model_pose, model_name, model_index,x_dest,y_dest,z_dest
     #final_quat = DEFAULT_QUAT * PyQuaternion(axis=(0, 0, 1), angle=pi/2)
     Send_joints(x_dest,y_dest,z_dest+SAFE_Z_OFFSET, DEFAULT_QUAT, 10)    
     check_position_loop()
+
 #############################
-#close_gripper: function that closes the gripper on the blocks and creates the dynamic link between the gripper and the block named
+# close_gripper: function that closes the gripper on the blocks and creates the dynamic link between the gripper and the block named
 # by model_name. If models have _* inside their names, the functions renames them removing extra characters
 #############################
 def close_gripper(model_name):
@@ -491,7 +475,7 @@ def close_gripper(model_name):
     set_gripper(lego_info[model_index, 4])
     rospy.sleep(0.3)
 #############################
-#open_gripper: function that opens the gripper after it has been closed. It also destroys the dynamic link created between the gripper and the block labeled as model_name
+# open_gripper: function that opens the gripper after it has been closed. It also destroys the dynamic link created between the gripper and the block labeled as model_name
 #############################
 def open_gripper(model_name):
     
@@ -507,8 +491,9 @@ def open_gripper(model_name):
     detach_srv.call(req)
     set_gripper(0.0)
     #rospy.sleep(0.2)
+
 #############################
-#set_model_fixed: function that is used to edit the properties of a block in order to make it stay in position and not to be afflicted from collisions. 
+# set_model_fixed: function that is used to edit the properties of a block in order to make it stay in position and not to be afflicted from collisions.
 # to do this we create a link between the block and the ground plane, and we edit the propery of the name via the setstatic service
 #############################
 def set_model_fixed(model_name):
@@ -527,8 +512,9 @@ def set_model_fixed(model_name):
     req.set_static = True
 
     setstatic_srv.call(req)
+
 #############################
-#get_approach_quat: function that chooses the right values of the approach quaternion based on the facing direction and the approach angle
+# get_approach_quat: function that chooses the right values of the approach quaternion based on the facing direction and the approach angle
 #############################
 def get_approach_quat(facing_direction, approach_angle):
     quat = DEFAULT_QUAT
@@ -558,7 +544,7 @@ def get_approach_quat(facing_direction, approach_angle):
 
     return quat
 #############################
-#get_facing_direction: based on the input quaternion it returns the facing direction of the block
+# get_facing_direction: based on the input quaternion it returns the facing direction of the block
 #############################
 def get_facing_direction(quat):
     axis_z = np.array([0, 0, 1])
@@ -573,7 +559,7 @@ def get_facing_direction(quat):
     else:
         return "down"
 #############################
-#get_approach_angle: returns the value of the approach angle
+# get_approach_angle: returns the value of the approach angle
 #############################
 def get_approach_angle(model_quat, facing_direction):#get gripper approach angle
     if facing_direction == "up":
@@ -592,7 +578,7 @@ def get_approach_angle(model_quat, facing_direction):#get gripper approach angle
     else:
         raise ValueError(f"Invalid model state {facing_direction}")
 #############################
-#get_lego_pos_by_name: given the name of a block it returns the Gazebo position of the block
+# get_lego_pos_by_name: given the name of a block it returns the Gazebo position of the block
 #############################
 def get_lego_pos_by_name(name):
     legos=ModelStates()
@@ -601,7 +587,7 @@ def get_lego_pos_by_name(name):
         if(name == lego[0]):
             return lego
 #############################
-#set_gripper: given a value between 0 and 0.8 this function makes the gripper reach that position
+# set_gripper: given a value between 0 and 0.8 this function makes the gripper reach that position
 #############################
 def set_gripper(value):
 
@@ -622,8 +608,9 @@ def set_gripper(value):
     client.send_goal(goal)
     #client.wait_for_result()
     #return client.get_result()
+
 #############################
-#main: main function where services and variables are declared and where worplan is developed
+# main: main function where services and variables are declared and where worplan is developed
 #############################
 if __name__ == "__main__":
 

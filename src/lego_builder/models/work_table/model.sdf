@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
-<sdf version="1.4">
-  <model name="cafe_table">
+<sdf version="1.5">
+  <model name="work_table">
     <static>true</static>
     <link name="link">
       <collision name="surface">
@@ -10,6 +10,14 @@
             <size>0.913 0.913 0.04</size>
           </box>
         </geometry>
+        <surface>
+            <contact>
+                <ode>
+                    <mu>0.01</mu>
+                    <mu2>0.01</mu2>
+                </ode>
+            </contact>
+        </surface>
       </collision>
 
       <collision name="column">
@@ -33,7 +41,7 @@
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>model://cafe_table/meshes/cafe_table.dae</uri>
+            <uri>model://work_table/meshes/work_table.dae</uri>
           </mesh>
         </geometry>
       </visual>

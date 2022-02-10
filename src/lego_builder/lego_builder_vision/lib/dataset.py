@@ -1,8 +1,6 @@
-import copy
-import json
 import os
+import json
 import random
-import time
 from pyquaternion import Quaternion
 
 import cv2

@@ -1,9 +1,7 @@
 """
     Calculate 2D bboxes as /camera would see them.
 """
-import cv2
 import numpy as np
-import math
 
 
 def calculateBBox(points):

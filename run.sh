@@ -76,13 +76,17 @@ function run_vision() {
 }
 
 function run_kinematics() {
-  rosrun lego_builder_kinematics main.py
+    rosrun lego_builder_kinematics main.ass3.py
 }
 
 function run_all() {
     (run_master) > /dev/null &
     (run_vision) > /dev/null &
     run_kinematics
+}
+
+function run_launch() {
+    roslaunch
 }
 
 eval $1

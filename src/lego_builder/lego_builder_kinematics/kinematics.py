@@ -16,51 +16,17 @@ from math import asin as asin
 from math import sqrt as sqrt
 from math import pi as pi
 
-#global definition of UR5 parameters
-
-global d1, a2, a3, a7, d4, d5, d6
-d1 = 0.089159
-a2 = -0.425
-a3 = -0.39225
-a7 = 0
-d4 = 0.10915
-d5 = 0.09465
-d6 = 0.1628 + 0.0903
-
-global d, a, alph
-
-d = arr([
-    0.089159,
-    0,
-    0,
-    0.10915,
-    0.09465,
-    0.1628 + 0.0903,
-    ])
-
-# d = mat([0.1273, 0, 0, 0.163941, 0.1157, 0.0922])#ur10 mm
-
-a = arr([
-    0,
-    -0.425,
-    -0.39225,
-    0,
-    0,
-    0,
-    ])
-
-# a =mat([0 ,-0.612 ,-0.5723 ,0 ,0 ,0])#ur10 mm
-
-alph = [pi/2, 0, 0, pi/2, -pi/2, 0]
-
-
-# alph = mat([pi/2, 0, 0, pi/2, -pi/2, 0 ]) # ur10
+#definition of UR5 parameters
+d    = [0.089159,  0.00000,  0.00000,  0.10915,  0.09465,  0.0903 + 0.1628]
+a    = [0.00000,  -0.42500, -0.39225,  0.00000,  0.00000,  0.0000]
+alph = [pi/2,      0,        0,        pi/2,     -pi/2,    0]
 
 # ************************************************** FORWARD KINEMATICS
 
 def AH(n, th):
     T_a = np.identity(4)
     T_a[0, 3] = a[n - 1]
+
     T_d = np.identity(4)
     T_d[2, 3] = d[n - 1]
 
@@ -76,9 +42,28 @@ def AH(n, th):
          [0, sin(alph[n - 1]), cos(alph[n - 1]),  0],
          [0, 0,                0,                 1]])
 
-    A_i = T_d @ Rzt @ T_a @ Rxa
+    return T_d @ Rzt @ T_a @ Rxa
 
-    return A_i
+"""def AH(a, alpha, d, theta):
+    T_a = np.identity(4)
+    T_a[0, 3] = a
+
+    T_d = np.identity(4)
+    T_d[2, 3] = d
+
+    Rzt = arr(
+        [[cos(theta),       -sin(theta),         0, 0],
+         [sin(theta),        cos(theta),         0, 0],
+         [0,                 0,                  1, 0],
+         [0,                 0,                  0, 1]])
+
+    Rxa = arr(
+        [[1, 0,                0,                 0],
+         [0, cos(alpha),       -sin(alpha),       0],
+         [0, sin(alpha),       cos(alpha),        0],
+         [0, 0,                0,                 1]])
+
+    return T_d @ Rzt @ T_a @ Rxa"""
 
 
 def forward(th):
@@ -97,15 +82,15 @@ def forward(th):
 # ************************************************** INVERSE KINEMATICS
 
 def inverse(desired_pos):  # T60
-    th = arr(np.zeros((6, 8)))
-    P_05 = desired_pos @ [0, 0, -d6, 1] - [0, 0, 0, 1]
+    th = np.zeros((6, 8), dtype=np.float64)
+    P_05 = desired_pos @ [0, 0, -d[5], 1] - [0, 0, 0, 1]
 
     P_05 = np.asarray(P_05).flatten()
 
     # **** theta1 ****
 
     psi = atan2(P_05[2 - 1], P_05[1 - 1])
-    phi = acos(d4 / sqrt(P_05[2 - 1] * P_05[2 - 1] + P_05[1 - 1] * P_05[1 - 1]))
+    phi = acos(d[3] / sqrt(P_05[2 - 1] * P_05[2 - 1] + P_05[1 - 1] * P_05[1 - 1]))
 
     # The two solutions for theta1 correspond to the shoulder
     # being either left or right
@@ -120,8 +105,8 @@ def inverse(desired_pos):  # T60
     for c in cl:
         T_10 = linalg.inv(AH(1, th[:, c]))
         T_16 = T_10 @ desired_pos
-        th[4, c:c + 2] = +acos((T_16[2, 3] - d4) / d6)
-        th[4, c + 2:c + 4] = -acos((T_16[2, 3] - d4) / d6)
+        th[4, c:c + 2] = +acos((T_16[2, 3] - d[3]) / d[5])
+        th[4, c + 2:c + 4] = -acos((T_16[2, 3] - d[3]) / d[5])
 
     th = th.real
 
@@ -144,8 +129,8 @@ def inverse(desired_pos):  # T60
         T_65 = AH(6, th[:, c])
         T_54 = AH(5, th[:, c])
         T_14 = T_10 @ desired_pos @ linalg.inv(T_54 @ T_65)
-        P_13 = T_14 @ [0, -d4, 0, 1] - [0, 0, 0, 1]
-        t3 = cmath.acos((linalg.norm(P_13) ** 2 - a2 ** 2 - a3 ** 2) / (2 * a2 * a3))  # norm ?
+        P_13 = T_14 @ [0, -d[3], 0, 1] - [0, 0, 0, 1]
+        t3 = cmath.acos((linalg.norm(P_13) ** 2 - a[1] ** 2 - a[2] ** 2) / (2 * a[1] * a[2]))  # norm ?
         th[2, c] = t3.real
         th[2, c + 1] = -t3.real
 
@@ -157,11 +142,11 @@ def inverse(desired_pos):  # T60
         T_65 = linalg.inv(AH(6, th[:, c]))
         T_54 = linalg.inv(AH(5, th[:, c]))
         T_14 = T_10 @ desired_pos @ T_65 @ T_54
-        P_13 = T_14 @ [0, -d4, 0, 1] - [0, 0, 0, 1]
+        P_13 = T_14 @ [0, -d[3], 0, 1] - [0, 0, 0, 1]
 
         # theta 2
 
-        th[1, c] = -atan2(P_13[1], -P_13[0]) + asin(a3 * sin(th[2, c])
+        th[1, c] = -atan2(P_13[1], -P_13[0]) + asin(a[2] * sin(th[2, c])
                 / linalg.norm(P_13))
 
         # theta 4

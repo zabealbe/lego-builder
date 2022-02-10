@@ -9,16 +9,18 @@ import numpy as np
 from cv_bridge import CvBridge
 from pyquaternion import Quaternion as PyQuaternion
 
+# import the custom packages
+import lib.my_utils as my_utils
+from yofo.model import Yofo
+
 # import the necessary ROS packages
-import message_filters
 import rospy
+import message_filters
 from sensor_msgs.msg import Image
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Pose, Point
 
-# import the custom packages
-import my_utils
-from yofo.model import Yofo
+
 
 PKG_PATH = os.path.dirname(os.path.abspath(__file__))
 MODELS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
@@ -214,10 +216,11 @@ def camera_callback(image_color, image_depth, model_infos):
             [0, .1, 0],   # y
             [0, 0, .1]])  # z
         axes = np.dot(rot_tra, axes.T)[:3, :]
-        axes_2dproj = my_utils.projectPoints(
+        (axes_2dproj, _) = cv2.projectPoints(
             axes,
-            abs(camera_frame[:3, 3]), camera_frame[:3, :3],
-            camera_matrix, dist_coeffs).reshape(-1, 2).astype(np.int32)
+            camera_frame[:3, :3], abs(camera_frame[:3, 3]),
+            camera_matrix, dist_coeffs)
+        axes_2dproj = axes_2dproj.reshape(-1, 2).astype(np.int32)
 
         cv2.line(image_color,
                  axes_2dproj[0],

@@ -1,14 +1,20 @@
+#!/bin/python
 import os
 import cv2
 import json
+import copy
 import numpy as np
 from pyquaternion import Quaternion
 
-MODELS_PATH = "../models"
 
+def get_model_size(model_name, models_path="models"):
+    model_json_path = os.path.join(models_path, model_name, "model.json")
+    # make path absolute
+    model_json_path = os.path.abspath(model_json_path)
+    # check path exists
+    if not os.path.exists(model_json_path):
+        raise FileNotFoundError(f"Model file {model_json_path} not found")
 
-def get_model_width(model_name):
-    model_json_path = os.path.join(MODELS_PATH, model_name, "model.json")
     model_json = json.load(open(model_json_path, "r"))
     corners = np.array(model_json["corners"])
 
@@ -19,18 +25,17 @@ def get_model_width(model_name):
     return size_x, size_y, size_z
 
 
-def min_area_crop(depth, normalize=True):
+def min_area_crop(depth, thresh, normalize=True):
     depth_max = depth.max()
     depth_min = depth.min()
 
-    contour = np.where(depth < depth_max - 0.005, 255, 0).astype(np.uint8).squeeze()
+    contour = np.where(depth < thresh, 255, 0).astype(np.uint8).squeeze()
 
-    # cv2.imshow("crop_contour", crop_contour)
     contour, _ = cv2.findContours(contour, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     # Check if there is a contour
     if len(contour) == 0:
-        return 0, None
+        return None, 0, None
 
     # find the contour with the largest area
     contour = contour[np.argmax([len(x) for x in contour], axis=0)]
@@ -65,7 +70,7 @@ def min_area_crop(depth, normalize=True):
         crop -= depth_min
         crop /= depth_max - depth_min
 
-    return angle/90*(np.pi/2), crop
+    return rect, angle/90*(np.pi/2), crop
 
 
 def get_facing_direction(quat):
@@ -78,7 +83,6 @@ def get_facing_direction(quat):
         return "up"
     elif angle < np.pi / 3 * 2 * 1.2:
         i = np.argmax(np.abs(new_axis[:2]))
-        print(new_axis)
         if i == 0:  # x axis
             if new_axis[i] > 0:
                 return "north"
@@ -103,23 +107,18 @@ def get_axes(quat):
     return axes
 
 
-def projectPoints(points, camera_pos, camera_rot, camera_matrix, dist_coeffs, camera_axis="default"):
-    """Project 3D points onto camera 2D plain
-
-    Params:
-        points: 3D points in the world coordinate frame.
-        camera_matrix: camera matrix.
-        dist_coeffs: distortion coefficients.
-        camera_pos: camera position vector in the world coordinate frame.
-        camera_rot: camera rotation matrix in the world coordinate frame.
-    Returns:
-        2D points in the camera coordinate frame.
+def rob2cam(pose):
     """
-    if camera_axis == "default":  # camera_rot uses default convention with z axis pointing out of the screen
-        pass
-    elif camera_axis == "robotic":  # camera_rot uses robotic axes convention, convert standard camera axes
-        camera_rot = np.dot(np.array([[0, -1, 0], [0, 0, -1], [1, 0, 0]], dtype=np.float64), camera_rot)
-    else:
-        raise ValueError("camera_axis must be 'default' or 'robotic'")
-    (image_points, _) = cv2.projectPoints(points, camera_rot, camera_pos, camera_matrix, dist_coeffs)
-    return image_points
+        rob2cam:
+        convert robotic arm pose convention to camera pose convention
+    """
+    camera_pose = copy.deepcopy(pose)
+    orientation = Quaternion(
+        x=camera_pose.orientation.x,
+        y=camera_pose.orientation.y,
+        z=camera_pose.orientation.z,
+        w=camera_pose.orientation.w)
+    # orientation uses robotic axes convention, convert to standard camera axes
+    orientation = np.dot(orientation.rotation_matrix, np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]]))#np.array([[0, -1, 0], [0, 0, -1], [1, 0, 0]]))
+    camera_pose.orientation = Quaternion(matrix=orientation)
+    return camera_pose

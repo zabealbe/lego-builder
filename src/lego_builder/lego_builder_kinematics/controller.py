@@ -116,8 +116,6 @@ class ArmController:
             # Publish the message
             self.joints_pub.publish(traj)
 
-        #self.wait_for_position(tol_pos=0.1, tol_vel=1)
-
     def wait_for_position(self, timeout=2, tol_pos=0.01, tol_vel=0.01):
         end = rospy.Time.now() + rospy.Duration(timeout)
         while rospy.Time.now() < end:

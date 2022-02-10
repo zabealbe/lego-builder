@@ -19,7 +19,7 @@
     <arg name="gui"        value="$(arg gui)"/>
   </include>
 
-    <arg name="sdf_robot_file" default="$(find lego_builder_gazebo)../models/cafe_table/model.sdf"/>
+  <arg name="sdf_robot_file" default="$(find lego_builder_gazebo)../models/work_table/model.sdf"/>
 
   <!-- Send robot urdf to param server -->
   <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find ur5_description)/urdf/ur5_robotiq85_gripper.urdf.xacro'" />
@@ -33,7 +33,7 @@
 
   <!-- Spawn ur5 robotic arm -->
   <node name="spawn_ur5" pkg="gazebo_ros" type="spawn_model"
-        args="-urdf -param robot_description -model robot -z 0.775050 -Y -3.1415926535
+        args="-urdf -param robot_description -model robot -z 0.775050 -Y -3.1415926535 -P 0.0 -R 0.0
               -J shoulder_pan_joint -1.57
               -J shoulder_lift_joint -1.8
               -J elbow_joint -1.0
@@ -42,7 +42,7 @@
 
   <!-- Spawn Work surface -->
   <node name="spawn_work_surface" pkg="gazebo_ros" type="spawn_model"
-        args="-sdf -file $(arg sdf_robot_file) -model cafe_table -x 0 -y -0.558 -z 0 -Y -3.1415926535"
+        args="-sdf -file $(arg sdf_robot_file) -model work_table -x 0 -y -0.558 -z 0 -Y -3.1415926535"
   output="screen" />
 
   <!-- Load ur5 controllers -->

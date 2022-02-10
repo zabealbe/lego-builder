@@ -1,18 +1,16 @@
 #!/bin/python3
 import os
 import copy
-import spawner
+import numpy as np
 import random as rd
-
-import rospy
 import json
 import cv2
 import time
-import utils
 
-import numpy as np
-
+import spawner
 import bboxes as bb
+
+import rospy
 import message_filters
 from pyquaternion import Quaternion
 from cv_bridge import CvBridge
@@ -20,7 +18,8 @@ from sensor_msgs.msg import Image, CameraInfo
 from gazebo_msgs.msg import ModelStates
 from gazebo_msgs.srv import GetModelState
 
-MODELS_PATH = "../models"
+PKG_PATH = os.path.dirname(os.path.abspath(__file__))
+MODELS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
 
 OUTPUT_PATH = "dataset/out"
 
@@ -178,10 +177,15 @@ def snapshot():
             [0, .1, 0],   # y
             [0, 0, .1]])  # z
         axes = np.dot(rot_tra, axes.T)[:3, :]
+        (axes_2dproj, _) = cv2.projectPoints(
+            axes,
+            camera_pose.orientation.rotation_matrix, camera_pose.position,
+            camera_matrix, dist_coeffs)
+        """
         axes_2dproj = utils.projectPoints(axes,
                              camera_pose.position, camera_pose.orientation.rotation_matrix,
-                             camera_matrix, dist_coeffs).reshape(-1, 2)
-        axeses.append(axes_2dproj.astype(np.int32))
+                             camera_matrix, dist_coeffs).reshape(-1, 2)"""
+        axeses.append(axes_2dproj.reshape(-1, 2).astype(np.int32))
 
         # Load bbox corners
         name = name.rsplit("_", maxsplit=1)[0]
@@ -193,10 +197,15 @@ def snapshot():
 
         # Set bbox corners frame of reference to lego
         corners = np.dot(rot_tra, corners.T)[:3, :]
+        (corners_2dproj, _) = cv2.projectPoints(
+            corners,
+            camera_pose.orientation.rotation_matrix, camera_pose.position,
+            camera_matrix, dist_coeffs)
+        """
         corners_2d = utils.projectPoints(corners,
                              camera_pose.position, camera_pose.orientation.rotation_matrix,
-                             camera_matrix, dist_coeffs).reshape(-1, 2)
-        bbox = bb.calculateBBoxYolo(corners_2d,
+                             camera_matrix, dist_coeffs).reshape(-1, 2)"""
+        bbox = bb.calculateBBoxYolo(corners_2dproj.reshape(-1, 2),
             image_width=camera_view[0], image_height=camera_view[1])
 
         classes.append(name.replace("lego_", ""))
