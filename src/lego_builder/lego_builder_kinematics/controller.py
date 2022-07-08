@@ -8,11 +8,11 @@ import trajectory_msgs.msg
 from pyquaternion import Quaternion
 
 
-def get_controller_state(controller_topic):
+def get_controller_state(controller_topic, timeout=None):
     return rospy.wait_for_message(
         f"{controller_topic}/state",
         control_msgs.msg.JointTrajectoryControllerState,
-        timeout=10)
+        timeout=timeout)
 
 
 class ArmController:
@@ -119,7 +119,7 @@ class ArmController:
     def wait_for_position(self, timeout=2, tol_pos=0.01, tol_vel=0.01):
         end = rospy.Time.now() + rospy.Duration(timeout)
         while rospy.Time.now() < end:
-            msg = get_controller_state(self.controller_topic)
+            msg = get_controller_state(self.controller_topic, timeout=10)
             v = np.sum(np.abs(msg.actual.velocities), axis=0)
             if v < tol_vel:
                 for actual, desired in zip(msg.actual.positions, msg.desired.positions):

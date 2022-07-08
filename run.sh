@@ -30,8 +30,12 @@ function docker_start() {
 		--workdir /home/ros/Workspace \
 		--name ${DOCKER_IMAGE} \
 		${DOCKER_IMAGE}
-  # Source the ROS setup script
-  docker exec -it ${DOCKER_IMAGE} bash -c "echo 'source ~/Workspace/devel/setup.bash' >> ~/.bashrc"
+
+    # Setup the ROS workspace
+    docker exec -i ${DOCKER_IMAGE} bash -c "source /opt/ros/noetic/setup.bash && ./run.sh setup"
+
+    # Source the ROS setup script
+    docker exec -it ${DOCKER_IMAGE} bash -c "echo 'source ~/Workspace/devel/setup.bash' >> ~/.bashrc"
 }
 function docker_bash() {
     # Docker start if not already
@@ -42,14 +46,6 @@ function docker_bash() {
 function docker_stop() {
     # Stop the docker container
     docker stop ${DOCKER_IMAGE}
-}
-function devel() {
-    in_docker
-    
-    setup
-
-    . devel/setup.bash
-    roslaunch lego_builder_gazebo base.launch
 }
 function setup() {
     in_docker
@@ -68,25 +64,77 @@ function clean() {
 }
 
 function run_master() {
-    devel
+    # Setup the environment and launch gazebo world
+    # param $1: world name
+
+    roslaunch lego_builder_gazebo $1
+    #roslaunch lego_builder_gazebo $1
 }
 
 function run_vision() {
+    # Launch the vision ros node
     rosrun lego_builder_vision main.py
 }
 
 function run_kinematics() {
-    rosrun lego_builder_kinematics main.ass3.py
+    # Setup the environment and launch gazebo world
+    # param $1: mode name
+
+    if [ -z "$1" ]; then
+        echo "Please provide a mode name"
+        exit 1
+    fi
+
+    # Launch the kinematics ros node
+    case $1 in
+        stack)
+            rosrun lego_builder_kinematics main.stack.py
+        ;;
+        build)
+            rosrun lego_builder_kinematics main.build.py
+        ;;
+        *)
+            echo "Unknown mode"
+            exit 1
+        ;;
+    esac
 }
 
-function run_all() {
-    (run_master) > /dev/null &
+function launch() {
+    # Start gazebo world and launch all the nodes
+    # param $1: launch file name
+    # param $2: mode name
+
+    if [ -z "$1" ]; then
+        echo "Please provide a launch file name"
+        exit 1
+    fi
+
+    (run_master "$1.launch") > /dev/null &
     (run_vision) > /dev/null &
-    run_kinematics
+    run_kinematics $2
 }
 
-function run_launch() {
-    roslaunch
+function launch_mode_build() {
+    launch $1 build
 }
 
-eval $1
+function launch_mode_stack() {
+    launch $1 stack
+}
+
+function launch_ass2() {
+    # Launch the assignment 2
+    launch ass2 stack
+}
+
+function launch_ass3() {
+    # Launch the assignment 3
+    launch ass3 stack
+}
+
+function launch_ass4() {
+    # Launch the assignment 4
+    launch ass4 build
+}
+eval $@

@@ -34,25 +34,25 @@ RUN apt install -y ros-noetic-soem # Ethercat stuff
 #
 # Install project dependencies
 #
-RUN pip install -r https://raw.githubusercontent.com/ultralytics/yolov5/master/requirements.txt
+RUN pip install -r https://raw.githubusercontent.com/ultralytics/yolov5/v6.0/requirements.txt
+
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
-COPY src/lego_builder/lego_builder_vision/yolo/yolov5/requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+
+# Cleanup
+#RUN rm -rf /var/lib/apt/lists/*
+
+# Add ros user with home folder
+RUN useradd -ms /bin/bash -G sudo ros
+RUN chown -R ros:ros /home/ros
 
 # Yolo font
 ADD https://ultralytics.com/assets/Arial.ttf /home/ros/.config/Ultralytics/Arial.ttf
 RUN chown -R ros:ros /home/ros/.config/Ultralytics
 
-# Cleanup
-#RUN rm -rf /var/lib/apt/lists/*
-
 # Enable sudo without password
 RUN sed -i 's/(ALL:ALL) ALL/(ALL) NOPASSWD: ALL/' /etc/sudoers
 
-# Add ros user with home folder
-RUN useradd -ms /bin/bash -G sudo ros
-RUN chown -R ros:ros /home/ros
 # Switch to the newly created user
 USER ros
 
